@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  mysqldb:
+    image: mysql
+    container_name: mysqldb
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - $MYSQL_LOCAL_PORT:$MYSQL_DOCKER_PORT
+    volumes:
+      - ./mysql-dump:/docker-entrypoint-initdb.d
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/my.cnf
+    networks:
+      - webapp-network
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    image: express-api-mysql
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mysqldb
+    stdin_open: true
+    tty: true
+    networks:
+      - webapp-network
+volumes:
+  db-config:
+  db-data:
+
+networks:
+  webapp-network:
+    driver: bridge

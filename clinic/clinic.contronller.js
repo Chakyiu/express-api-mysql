@@ -2,13 +2,21 @@ const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
 const { salt, secret } = require("../config/key");
+const authorize = require("../middleware/authorize");
 
-const { createClinic, getClinicByEmail } = require("./clinic.service");
+const {
+  createClinic,
+  getClinicByEmail,
+  createRecord,
+  getRecordOnDate,
+} = require("./clinic.service");
 const jwt = require("jsonwebtoken");
 
 //Routers
-router.post("/", createAccount);
+router.post("/createClinic", createAccount);
 router.post("/login", login);
+router.post("/create", authorize, create);
+router.get("/getRecord", authorize, getRecord);
 
 module.exports = router;
 
@@ -21,25 +29,32 @@ function createAccount(req, res) {
   getClinicByEmail(body.email, (err, result) => {
     if (err) {
       res.status(404).json({
-        message: "Database connection failed",
+        message: err,
       });
       return;
     }
 
-    if (result) msg.push("Account already exists.");
-  });
-
-  createClinic(body, (err, result) => {
-    if (err) {
+    if (result.length > 0) {
+      msg.push("Account already exists.");
       res.status(404).json({
         message: "Creation failed. " + msg.join(" "),
       });
       return;
-    }
+    } else {
+      createClinic(body, (err, result) => {
+        if (err) {
+          msg.push(err);
+          res.status(404).json({
+            message: "Creation failed. " + msg.join(" "),
+          });
+          return;
+        }
 
-    res.status(200).json({
-      message: "Clinic account created",
-    });
+        res.status(200).json({
+          message: "Clinic account created",
+        });
+      });
+    }
   });
 }
 
@@ -50,7 +65,7 @@ function login(req, res) {
   getClinicByEmail(body.email, (err, result) => {
     if (err) {
       res.status(404).json({
-        message: "Database connection failed",
+        message: err,
       });
       return;
     }
@@ -62,12 +77,61 @@ function login(req, res) {
     if (comparePassword(body.password, result[0].password)) {
       result.password = undefined;
       const jwtoken = jwt.sign({ result: result }, secret, {
-        expiresIn: "1h",
+        expiresIn: "7d",
       });
       return res.json({ message: "login success", token: jwtoken });
     } else {
       return res.json({ message: "Wrong password" });
     }
+  });
+}
+
+function create(req, res) {
+  const body = req.body;
+  var msg = [];
+
+  getClinicByEmail(body.email, (err, result) => {
+    if (err) {
+      res.status(404).json({
+        message: err,
+      });
+      return;
+    }
+
+    if (result.length > 0) msg.push("Account already exists.");
+  });
+
+  createRecord(body, (err, result) => {
+    if (err) {
+      msg.push(err);
+      res.status(404).json({
+        message: "Creation failed. " + msg.join(" "),
+      });
+      return;
+    }
+
+    res.status(200).json({
+      message: "Record created",
+    });
+  });
+}
+
+function getRecord(req, res) {
+  const body = req.query;
+  var msg = [];
+
+  getRecordOnDate(body, (err, result) => {
+    if (err) {
+      msg.push(err);
+      res.status(404).json({
+        message: "Request failed. " + msg.join(" "),
+      });
+      return;
+    }
+
+    res.status(200).json({
+      record: result,
+    });
   });
 }
 
