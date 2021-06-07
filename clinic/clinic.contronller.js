@@ -70,18 +70,19 @@ function login(req, res) {
       return;
     }
 
-    if (!result) {
+    if (result.length === 0) {
       res.json({ message: "Account does not exist" });
-    }
-
-    if (comparePassword(body.password, result[0].password)) {
-      result.password = undefined;
-      const jwtoken = jwt.sign({ result: result }, secret, {
-        expiresIn: "7d",
-      });
-      return res.json({ message: "login success", token: jwtoken });
+      return;
     } else {
-      return res.json({ message: "Wrong password" });
+      if (comparePassword(body.password, result[0].password)) {
+        result.password = undefined;
+        const jwtoken = jwt.sign({ result: result }, secret, {
+          expiresIn: "7d",
+        });
+        return res.json({ message: "login success", token: jwtoken });
+      } else {
+        return res.json({ message: "Wrong password" });
+      }
     }
   });
 }
