@@ -1,16 +1,17 @@
 const express = require("express");
-const bodyParser = require("body-parser");
-
 const app = express();
+const router = require("./clinic/clinic.contronller");
 
-app.use(bodyParser.json());
+app.use(express.json());
+app.use(
+  express.urlencoded({
+    extended: true,
+  })
+);
 
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use("/clinic", router);
 
-app.get("/", (req, res) => {
-  res.json({ message: "Welcome to bezkoder application." });
-});
-
-app.listen(3000, () => {
-  console.log("Server is running on port 3000.");
+const port = process.env.PORT || 8000;
+app.listen(port, () => {
+  console.log("server up and running on PORT :", port);
 });
